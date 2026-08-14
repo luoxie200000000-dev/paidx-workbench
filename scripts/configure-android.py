@@ -1,13 +1,9 @@
 #!/usr/bin/env python3
-"""Configure Android build.gradle.kts: arm64-only + release without R8/shrink/crunch."""
+"""Configure Android build.gradle.kts: arm64-only + release without R8 (match working APK)."""
 import re
 
 gradle_file = 'src-tauri/gen/android/app/build.gradle.kts'
 content = open(gradle_file).read()
-
-print('=== ORIGINAL build.gradle.kts ===')
-print(content)
-print('=== END ORIGINAL ===')
 
 # 1. Restrict ABI to arm64-v8a only
 if 'abiFilters' not in content:
@@ -17,7 +13,7 @@ if 'abiFilters' not in content:
     )
     print('Added ABI filter: arm64-v8a only')
 
-# 2. Add release signing config
+# 2. Add release signing config with v1+v2 signing
 signing = '''    signingConfigs {
         create("release") {
             storeFile = file(System.getenv("HOME") + "/paidx.keystore")
@@ -31,36 +27,19 @@ signing = '''    signingConfigs {
 '''
 if 'signingConfigs' not in content:
     content = content.replace('    buildTypes {', signing + '    buildTypes {')
-    print('Added signingConfigs')
+    print('Added signingConfigs with v1+v2 signing')
 
-# 3. Replace isMinifyEnabled = true -> false (regex to override existing setting)
+# 3. Replace isMinifyEnabled = true -> false (regex overrides existing setting)
 content = re.sub(r'isMinifyEnabled\s*=\s*true', 'isMinifyEnabled = false', content)
-print('Set isMinifyEnabled = false')
+print('Set isMinifyEnabled = false (disable R8)')
 
-# 4. Replace isShrinkResources = true -> false
-content = re.sub(r'isShrinkResources\s*=\s*true', 'isShrinkResources = false', content)
-print('Set isShrinkResources = false')
-
-# 5. Add signingConfig to release buildType + crunchPngs = false
+# 4. Add signingConfig to release buildType
 if 'signingConfig = signingConfigs.getByName("release")' not in content:
     content = content.replace(
         'getByName("release") {',
-        'getByName("release") {\n'
-        '            signingConfig = signingConfigs.getByName("release")\n'
-        '            crunchPngs = false'
+        'getByName("release") {\n            signingConfig = signingConfigs.getByName("release")'
     )
-    print('Added signingConfig + crunchPngs=false to release')
-
-# 6. Also disable crunchPngs globally for release
-if 'crunchPngs' not in content:
-    content = content.replace(
-        'getByName("release") {',
-        'getByName("release") {\n            crunchPngs = false'
-    )
+    print('Added signingConfig to release buildType')
 
 open(gradle_file, 'w').write(content)
-
-print()
-print('=== MODIFIED build.gradle.kts ===')
-print(content)
-print('=== END MODIFIED ===')
+print('Done')
