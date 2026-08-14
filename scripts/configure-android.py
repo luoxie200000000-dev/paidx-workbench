@@ -36,16 +36,7 @@ else:
     )
     print('Added isShrinkResources = false')
 
-# 4. Ensure debug keystore signs release APK with v1+v2 signatures
-if 'enableV1Signing' not in content:
-    content = re.sub(
-        r'(getByName\("debug"\)\s*\{)',
-        r'\1\n            enableV1Signing = true\n            enableV2Signing = true',
-        content,
-        count=1,
-    )
-    print('Added v1+v2 signing flags to debug signingConfig')
-
+# 4. Release build signed with debug keystore (v1+v2 signing on by default)
 m = re.search(r'create\("release"\)\s*\{', content)
 if m and 'signingConfig' not in content.split('create("release")')[1][:2000]:
     content = re.sub(
