@@ -46,20 +46,11 @@ jobs:
       - name: Init Tauri Android
         run: npx tauri android init
 
-      - name: Configure arm64-only + release (no R8, no shrink)
-        run: |
-          keytool -genkeypair -v \
-            -keystore $HOME/paidx.keystore \
-            -alias paidx \
-            -keyalg RSA -keysize 2048 \
-            -validity 10000 \
-            -storepass paidx123 \
-            -keypass paidx123 \
-            -dname "CN=Paidx, OU=Dev, O=Paidx, L=City, ST=State, C=CN"
-          python3 scripts/configure-android.py
+      - name: Restrict ABI to arm64-v8a only
+        run: python3 scripts/configure-android.py
 
-      - name: Build APK (release, arm64 only, no R8)
-        run: npx tauri android build --apk -t aarch64
+      - name: Build APK (debug, arm64 only)
+        run: npx tauri android build --apk --debug -t aarch64
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
