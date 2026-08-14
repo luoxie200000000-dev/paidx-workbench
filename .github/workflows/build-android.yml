@@ -56,37 +56,7 @@ jobs:
             -storepass paidx123 \
             -keypass paidx123 \
             -dname "CN=Paidx, OU=Dev, O=Paidx, L=City, ST=State, C=CN"
-
-          python3 << 'PYEOF'
-          content = open('src-tauri/gen/android/app/build.gradle.kts').read()
-
-          if 'abiFilters' not in content:
-              content = content.replace(
-                  'defaultConfig {',
-                  'defaultConfig {\n        ndk { abiFilters += listOf("arm64-v8a") }'
-              )
-
-          signing = '''    signingConfigs {
-        create("release") {
-            storeFile = file(System.getenv("HOME") + "/paidx.keystore")
-            storePassword = "paidx123"
-            keyAlias = "paidx"
-            keyPassword = "paidx123"
-        }
-    }
-'''
-          if 'signingConfigs' not in content:
-              content = content.replace('    buildTypes {', signing + '    buildTypes {')
-
-          if 'signingConfig = signingConfigs.getByName("release")' not in content:
-              content = content.replace(
-                  'getByName("release") {',
-                  'getByName("release") {\n            signingConfig = signingConfigs.getByName("release")'
-              )
-
-          open('src-tauri/gen/android/app/build.gradle.kts', 'w').write(content)
-          print('Gradle config updated: arm64-v8a only + release signing')
-          PYEOF
+          python3 scripts/configure-android.py
 
       - name: Build APK (release, arm64 only)
         run: npx tauri android build --apk -t aarch64
