@@ -37,15 +37,19 @@ else:
     print('Added isShrinkResources = false')
 
 # 4. Release build signed with debug keystore (v1+v2 signing on by default)
-m = re.search(r'create\("release"\)\s*\{', content)
-if m and 'signingConfig' not in content.split('create("release")')[1][:2000]:
+#    NOTE: Tauri template uses getByName("release"), not create("release")
+release_pat = r'(getByName\("release"\)\s*\{)'
+m = re.search(release_pat, content)
+if m and 'signingConfig' not in content[m.end():m.end() + 2000]:
     content = re.sub(
-        r'(create\("release"\)\s*\{)',
+        release_pat,
         r'\1\n            signingConfig = signingConfigs.getByName("debug")',
         content,
         count=1,
     )
     print('Release build now signed with debug keystore')
+else:
+    print('WARNING: release signingConfig not applied!', m)
 
 if content != original:
     open(gradle_file, 'w').write(content)
