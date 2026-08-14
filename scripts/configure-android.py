@@ -20,21 +20,23 @@ if 'abiFilters' not in content:
 else:
     print('ABI filter already present')
 
-# 2. Disable R8 minify (regex replace so the template's `true` is actually overridden)
-content, n = re.subn(r'isMinifyEnabled\s*=\s*true', 'isMinifyEnabled = false', content)
-print(f'minifyEnabled -> false: {n} replacement(s)')
+# 2. Keep R8 minify enabled (template default; the working OLD APK also used
+#    R8 - its classes.dex is 1.9MB vs 11.8MB unminified). Just verify it's on.
+n_on = len(re.findall(r'isMinifyEnabled\s*=\s*true', content))
+print(f'minifyEnabled stays true in {n_on} place(s) (matches OLD APK)')
 
-# 3. Disable resource shrink (only effective when minify on, but disable explicitly)
+# 3. Disable resource shrink (icons/resources safety; OLD APK kept all 217 res files)
 if re.search(r'isShrinkResources\s*=\s*true', content):
     content, n = re.subn(r'isShrinkResources\s*=\s*true', 'isShrinkResources = false', content)
     print(f'shrinkResources -> false: {n} replacement(s)')
-else:
-    content = content.replace(
-        'isMinifyEnabled = false',
-        'isMinifyEnabled = false\n            isShrinkResources = false',
-        1,
+elif 'isShrinkResources' not in content:
+    content, n = re.subn(
+        r'(getByName\("release"\)\s*\{)',
+        r'\1\n            isShrinkResources = false',
+        content,
+        count=1,
     )
-    print('Added isShrinkResources = false')
+    print(f'Added isShrinkResources = false to release: {n}')
 
 # 4. Release build signed with debug keystore (v1+v2 signing on by default)
 #    NOTE: Tauri template uses getByName("release"), not create("release")
